@@ -40,11 +40,14 @@ module.exports = async function handler(req, res) {
     const timestamp = Date.now().toString();
     const signature = hmacSignature(timestamp, method, apiPath, secret);
 
-    // URLSearchParams 대신 직접 쿼리스트링 조립 (쉼표 인코딩 방지)
-    const queryString = `hintKeywords=${encodeURIComponent(chunk.join(','))}&showDetail=1`;
+    // 쉼표 인코딩 없이 그대로 전달
+    const queryString = 'hintKeywords=' + chunk.join(',') + '&showDetail=1';
 
     try {
-      const response = await fetch(`https://api.searchad.naver.com${apiPath}?${queryString}`, {
+      const url = `https://api.searchad.naver.com${apiPath}?${queryString}`;
+      console.log(`[Naver API] calling: ${url.slice(0, 100)}`);
+
+      const response = await fetch(url, {
         headers: {
           'X-Timestamp': timestamp,
           'X-API-KEY': apiKey,
@@ -63,7 +66,7 @@ module.exports = async function handler(req, res) {
         errors.push({ status: response.status, body: text.slice(0, 300) });
       }
     } catch (e) {
-      console.error('[Naver API] error:', e.message);
+      console.error('[Naver API] fetch error:', e.message);
       errors.push({ error: e.message });
     }
   }
