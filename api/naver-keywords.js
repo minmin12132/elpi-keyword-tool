@@ -24,15 +24,8 @@ module.exports = async function handler(req, res) {
 
   const { keywords, apiKey, secret, customerId } = body || {};
 
-  console.log('[Debug] keywords count:', keywords ? keywords.length : 'MISSING');
-  console.log('[Debug] apiKey:', apiKey ? apiKey.slice(0,8)+'...' : 'MISSING');
-  console.log('[Debug] customerId:', customerId || 'MISSING');
-
   if (!keywords || !apiKey || !secret || !customerId) {
-    return res.status(400).json({ 
-      error: '필수 파라미터 누락', 
-      received: { keywords: !!keywords, apiKey: !!apiKey, secret: !!secret, customerId: !!customerId } 
-    });
+    return res.status(400).json({ error: '필수 파라미터 누락' });
   }
 
   const apiPath = '/keywordstool';
@@ -40,7 +33,6 @@ module.exports = async function handler(req, res) {
   const allResults = [];
   const errors = [];
 
-  // 5개씩 청크, 청크 사이 300ms 딜레이
   for (let i = 0; i < keywords.length; i += 5) {
     if (i > 0) await sleep(300);
 
@@ -48,13 +40,11 @@ module.exports = async function handler(req, res) {
     const timestamp = Date.now().toString();
     const signature = hmacSignature(timestamp, method, apiPath, secret);
 
-    const params = new URLSearchParams({
-      hintKeywords: chunk.join(','),
-      showDetail: '1'
-    });
+    // URLSearchParams 대신 직접 쿼리스트링 조립 (쉼표 인코딩 방지)
+    const queryString = `hintKeywords=${encodeURIComponent(chunk.join(','))}&showDetail=1`;
 
     try {
-      const response = await fetch(`https://api.searchad.naver.com${apiPath}?${params}`, {
+      const response = await fetch(`https://api.searchad.naver.com${apiPath}?${queryString}`, {
         headers: {
           'X-Timestamp': timestamp,
           'X-API-KEY': apiKey,
@@ -78,8 +68,6 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  console.log('[Debug] total results:', allResults.length, 'errors:', errors.length);
-  if (errors.length > 0) console.log('[Debug] errors:', JSON.stringify(errors));
-
+  console.log('[Debug] total results:', allResults.length);
   return res.status(200).json({ keywordList: allResults, errors });
 };
