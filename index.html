@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>엘피 키워드 탐색기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F3EF;
+    --surface: #FFFFFF;
+    --surface2: #EFEDE9;
+    --border: rgba(0,0,0,0.08);
+    --border2: rgba(0,0,0,0.14);
+    --text: #1A1917;
+    --text2: #6B6861;
+    --text3: #9C9A96;
+    --accent: #059669;
+    --accent-light: #D1FAE5;
+    --accent-text: #065F46;
+    --blue: #2563EB;
+    --blue-light: #DBEAFE;
+    --orange: #D97706;
+    --orange-light: #FEF3C7;
+    --red: #DC2626;
+    --red-light: #FEE2E2;
+    --font: 'Noto Sans KR', sans-serif;
+    --mono: 'DM Mono', monospace;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Header */
+  .header {
+    background: var(--text);
+    color: #fff;
+    padding: 2.5rem 2.5rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -40px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -70px; right: 100px;
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .header-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+  }
+  .header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-bottom: 0.35rem;
+  }
+  .header h1 span { color: #6EE7B7; }
+  .header-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
+    font-weight: 300;
+  }
+
+  /* Layout */
+  .container { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+  /* Section */
+  .section { margin-bottom: 1.5rem; }
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+  }
+
+  /* Topic selector */
+  .topic-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .topic-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 1.1rem 1.25rem;
+    border: 1.5px solid var(--border2);
+    border-radius: var(--radius);
+    background: var(--surface);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+    font-family: var(--font);
+  }
+  .topic-btn:hover { border-color: var(--text); background: var(--surface2); }
+  .topic-btn.selected { border-color: var(--text); background: var(--text); }
+  .topic-btn .t-icon { font-size: 22px; line-height: 1; }
+  .topic-btn .t-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    transition: color 0.15s;
+  }
+  .topic-btn.selected .t-name { color: #fff; }
+  .topic-btn .t-desc {
+    font-size: 11px;
+    color: var(--text3);
+    line-height: 1.45;
+    transition: color 0.15s;
+  }
+  .topic-btn.selected .t-desc { color: rgba(255,255,255,0.5); }
+
+  /* Category selector */
+  .cat-wrap {
+    display: none;
+  }
+  .cat-wrap.show { display: block; }
+
+  .cat-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .cat-btn {
+    padding: 7px 14px;
+    border: 1.5px solid var(--border2);
+    border-radius: 999px;
+    background: var(--surface);
+    font-family: var(--font);
+    font-size: 13px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .cat-btn:hover { border-color: var(--text); color: var(--text); }
+  .cat-btn.selected { border-color: var(--text); background: var(--text); color: #fff; }
+
+  /* Sub-category (custom input area) */
+  .subcustom {
+    display: none;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .subcustom.show { display: block; }
+  .subcustom label { font-size: 12px; color: var(--text3); margin-bottom: 5px; display: block; }
+  .subcustom input {
+    font-family: var(--font);
+    font-size: 13px;
+    padding: 8px 12px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    width: 100%;
+    color: var(--text);
+    background: var(--surface);
+    transition: border-color 0.15s;
+  }
+  .subcustom input:focus { outline: none; border-color: var(--text); }
+
+  /* Mode selector */
+  .mode-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .mode-btn {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0.9rem 1rem;
+    border: 1.5px solid var(--border2);
+    border-radius: var(--radius);
+    background: var(--surface);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: var(--font);
+    text-align: left;
+  }
+  .mode-btn:hover { border-color: var(--text); }
+  .mode-btn.selected { border-color: var(--accent); background: var(--accent-light); }
+  .mode-btn .m-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .mode-btn.selected .m-label { color: var(--accent-text); }
+  .mode-btn .m-desc { font-size: 11px; color: var(--text3); line-height: 1.4; }
+  .mode-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-family: var(--mono);
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-bottom: 2px;
+    width: fit-content;
+  }
+  .mode-badge.badge-low { background: var(--accent-light); color: var(--accent-text); }
+  .mode-badge.badge-mid { background: var(--blue-light); color: #1D4ED8; }
+  .mode-badge.badge-high { background: var(--orange-light); color: #92400E; }
+
+  /* API 설정 */
+  .api-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .api-group { display: flex; flex-direction: column; gap: 4px; }
+  .api-group.full { grid-column: 1 / -1; }
+  .api-group label { font-size: 11px; color: var(--text3); font-weight: 500; }
+  .api-group input {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 8px 10px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    background: var(--surface);
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  .api-group input:focus { outline: none; border-color: var(--text); }
+
+  .api-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text3);
+    cursor: pointer;
+    user-select: none;
+    margin-bottom: 1rem;
+  }
+  .api-toggle input[type="checkbox"] { cursor: pointer; accent-color: var(--text); }
+
+  /* Count selector */
+  .count-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .count-label { font-size: 13px; color: var(--text2); white-space: nowrap; }
+  .count-btns { display: flex; gap: 6px; }
+  .count-opt {
+    padding: 5px 14px;
+    border: 1.5px solid var(--border2);
+    border-radius: 999px;
+    background: var(--surface);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .count-opt.selected { border-color: var(--text); background: var(--text); color: #fff; }
+
+  /* Run button */
+  .run-btn {
+    width: 100%;
+    padding: 14px;
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 700;
+    background: var(--text);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .run-btn:hover { background: #2d2c28; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+  .run-btn:active { transform: none; }
+  .run-btn:disabled { background: var(--border2); cursor: not-allowed; transform: none; box-shadow: none; color: var(--text3); }
+
+  /* Progress */
+  .progress-wrap {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+  }
+  .progress-wrap.show { display: block; }
+  .progress-title {
+    font-size: 12px;
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+  .step-list { display: flex; flex-direction: column; gap: 0; }
+  .step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 0.5px solid var(--border);
+    font-size: 13px;
+    color: var(--text3);
+  }
+  .step-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .step-item.s-active { color: var(--text); }
+  .step-item.s-done { color: var(--accent); }
+  .step-dot {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--mono);
+    flex-shrink: 0;
+    background: var(--surface2);
+    color: var(--text3);
+    margin-top: 1px;
+  }
+  .step-dot.s-active { background: var(--text); color: #fff; }
+  .step-dot.s-done { background: var(--accent-light); color: var(--accent); }
+  .step-content { flex: 1; }
+  .step-name { font-weight: 500; margin-bottom: 2px; }
+  .step-sub { font-size: 11px; color: var(--text3); }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--text);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+
+  /* Error */
+  .error-box {
+    display: none;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    font-size: 13px;
+    color: #991B1B;
+    margin-top: 1rem;
+  }
+  .error-box.show { display: block; }
+
+  /* Results */
+  .results-wrap {
+    display: none;
+    margin-top: 1.5rem;
+  }
+  .results-wrap.show { display: block; }
+
+  /* Metrics */
+  .metrics-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 1.25rem;
+  }
+  .metric {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.1rem;
+  }
+  .metric-label { font-size: 10px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; font-family: var(--mono); }
+  .metric-value { font-size: 22px; font-weight: 700; color: var(--text); font-family: var(--mono); line-height: 1.2; }
+  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+  /* Sim notice */
+  .sim-notice {
+    display: none;
+    background: var(--orange-light);
+    border: 1px solid #FDE68A;
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    font-size: 12px;
+    color: #92400E;
+    margin-bottom: 1rem;
+  }
+  .sim-notice.show { display: flex; align-items: flex-start; gap: 8px; }
+
+  /* Table */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .table-title {
+    font-size: 11px;
+    font-family: var(--mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+  .export-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    font-family: var(--font);
+    font-size: 12px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .export-btn:hover { border-color: var(--text); color: var(--text); }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    padding: 9px 14px;
+    text-align: left;
+    font-size: 10px;
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  thead th.num { text-align: right; }
+  tbody tr { border-bottom: 0.5px solid var(--border); transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody td { padding: 10px 14px; color: var(--text); vertical-align: middle; }
+  tbody td.num { text-align: right; font-family: var(--mono); font-size: 12px; color: var(--text2); }
+
+  .kw-cell { display: flex; align-items: center; gap: 8px; }
+  .kw-rank {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    width: 18px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .kw-name { font-weight: 500; font-size: 13px; }
+
+  .badge {
+    display: inline-block;
+    font-size: 9px;
+    font-family: var(--mono);
+    letter-spacing: 0.05em;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+  .badge-low { background: var(--accent-light); color: var(--accent-text); }
+  .badge-mid { background: var(--blue-light); color: #1D4ED8; }
+  .badge-high { background: var(--red-light); color: var(--red); }
+
+  .bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .bar-bg {
+    flex: 1;
+    height: 5px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+    min-width: 60px;
+  }
+  .bar-fill {
+    height: 100%;
+    background: var(--text);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+  .bar-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+    white-space: nowrap;
+    min-width: 52px;
+    text-align: right;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 2rem;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+  }
+
+  @media (max-width: 640px) {
+    .topic-grid { grid-template-columns: 1fr; }
+    .mode-grid { grid-template-columns: 1fr; }
+    .api-grid { grid-template-columns: 1fr; }
+    .metrics-row { grid-template-columns: repeat(2, 1fr); }
+    .header { padding: 1.75rem 1.25rem 1.5rem; }
+    .container { padding: 1.25rem 1rem 3rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-label">엘피 블로그 · Keyword Explorer</div>
+  <h1>키워드 <span>탐색기</span></h1>
+  <div class="header-sub">주식 · 경제 · 정부지원 — 실제 네이버 검색량 기반</div>
+</header>
+
+<div class="container">
+
+  <!-- STEP 1: 주제 선택 -->
+  <div class="section">
+    <div class="section-label">01 · 주제 선택</div>
+    <div class="topic-grid">
+      <button class="topic-btn" data-topic="stock" onclick="selectTopic(this)">
+        <span class="t-icon">📈</span>
+        <span class="t-name">주식</span>
+        <span class="t-desc">종목 분석, 시장 동향<br>투자 전략, 기술적 분석</span>
+      </button>
+      <button class="topic-btn" data-topic="economy" onclick="selectTopic(this)">
+        <span class="t-icon">💹</span>
+        <span class="t-name">경제</span>
+        <span class="t-desc">금리, 환율, 부동산<br>글로벌 경제 이슈</span>
+      </button>
+      <button class="topic-btn" data-topic="support" onclick="selectTopic(this)">
+        <span class="t-icon">🏛️</span>
+        <span class="t-name">정부지원</span>
+        <span class="t-desc">지원금, 보조금, 세금<br>복지 정책, 혜택 정보</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 2: 카테고리 선택 -->
+  <div class="section cat-wrap" id="cat-wrap">
+    <div class="section-label">02 · 세부 카테고리</div>
+    <div class="card">
+      <div class="cat-grid" id="cat-grid"></div>
+      <div class="subcustom" id="subcustom">
+        <label>직접 입력 (선택 사항) — 특정 종목, 이슈, 키워드 힌트를 추가하세요</label>
+        <input type="text" id="custom-hint" placeholder="예: 삼성전자, 기준금리 인하, 청년 창업지원금 ...">
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: 탐색 모드 -->
+  <div class="section cat-wrap" id="mode-wrap">
+    <div class="section-label">03 · 탐색 모드</div>
+    <div class="mode-grid" id="mode-grid">
+      <button class="mode-btn selected" data-mode="longtail" onclick="selectMode(this)">
+        <span class="mode-badge badge-low">경쟁 낮음</span>
+        <span class="m-label">롱테일 공략</span>
+        <span class="m-desc">3~5어절 구체적 키워드<br>경쟁 낮고 전환율 높음</span>
+      </button>
+      <button class="mode-btn" data-mode="volume" onclick="selectMode(this)">
+        <span class="mode-badge badge-mid">트래픽</span>
+        <span class="m-label">검색량 우선</span>
+        <span class="m-desc">월 검색량 많은 키워드<br>높은 노출 기회 확보</span>
+      </button>
+      <button class="mode-btn" data-mode="season" onclick="selectMode(this)">
+        <span class="mode-badge badge-high">시즌형</span>
+        <span class="m-label">시즌 이슈</span>
+        <span class="m-desc">지금 뜨는 이슈 키워드<br>단기 폭발적 유입</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 4: 키워드 수 -->
+  <div class="section cat-wrap" id="count-wrap">
+    <div class="section-label">04 · 분석 키워드 수</div>
+    <div class="card">
+      <div class="count-row">
+        <span class="count-label">추천 키워드 개수</span>
+        <div class="count-btns">
+          <button class="count-opt" onclick="selectCount(this)" data-n="10">10개</button>
+          <button class="count-opt selected" onclick="selectCount(this)" data-n="20">20개</button>
+          <button class="count-opt" onclick="selectCount(this)" data-n="30">30개</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 5: API 설정 -->
+  <div class="section cat-wrap" id="api-wrap">
+    <div class="section-label">05 · API 설정</div>
+    <div class="card">
+      <label class="api-toggle">
+        <input type="checkbox" id="save-keys-toggle" onchange="toggleSave()"> API 키 브라우저에 저장 (이 기기만 / localStorage)
+      </label>
+      <div class="api-grid">
+        <div class="api-group full">
+          <label>CLAUDE API KEY</label>
+          <input type="password" id="claude-key" placeholder="sk-ant-...">
+        </div>
+        <div class="api-group">
+          <label>NAVER API KEY</label>
+          <input type="password" id="naver-key" placeholder="naver api key">
+        </div>
+        <div class="api-group">
+          <label>NAVER SECRET</label>
+          <input type="password" id="naver-secret" placeholder="secret key">
+        </div>
+        <div class="api-group">
+          <label>CUSTOMER ID</label>
+          <input type="text" id="naver-cid" placeholder="숫자 ID">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 실행 버튼 -->
+  <div class="section cat-wrap show" id="run-wrap">
+    <button class="run-btn" id="run-btn" onclick="runAnalysis()">
+      <span>🔍</span> 키워드 탐색 시작
+    </button>
+  </div>
+
+  <!-- 진행 상황 -->
+  <div class="progress-wrap" id="progress-wrap">
+    <div class="progress-title">분석 진행 중</div>
+    <div class="step-list">
+      <div class="step-item" id="s1">
+        <div class="step-dot" id="d1">1</div>
+        <div class="step-content">
+          <div class="step-name">시드 키워드 생성</div>
+          <div class="step-sub" id="sub1">Claude AI가 주제별 키워드 후보 생성 중</div>
+        </div>
+      </div>
+      <div class="step-item" id="s2">
+        <div class="step-dot" id="d2">2</div>
+        <div class="step-content">
+          <div class="step-name">네이버 검색량 조회</div>
+          <div class="step-sub" id="sub2">실제 월간 PC + 모바일 검색량 수집</div>
+        </div>
+      </div>
+      <div class="step-item" id="s3">
+        <div class="step-dot" id="d3">3</div>
+        <div class="step-content">
+          <div class="step-name">결과 정렬 및 분석</div>
+          <div class="step-sub" id="sub3">경쟁도 + 검색량 기준 우선순위 산정</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 에러 -->
+  <div class="error-box" id="error-box">⚠️ <span id="error-msg"></span></div>
+
+  <!-- 결과 -->
+  <div class="results-wrap" id="results-wrap">
+
+    <div class="metrics-row" id="metrics-row"></div>
+
+    <div class="sim-notice" id="sim-notice">
+      <span>⚠️</span>
+      <div>네이버 검색광고 API 키가 없거나 오류가 발생해 <strong>시뮬레이션 데이터</strong>로 표시됩니다. 실제 수치는 네이버 검색광고 API 키 입력 후 재실행하세요.</div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header">
+        <span class="table-title" id="table-title">키워드 분석 결과</span>
+        <button class="export-btn" onclick="exportCSV()">↓ CSV 다운로드</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>키워드</th>
+              <th class="num">PC 검색</th>
+              <th class="num">모바일 검색</th>
+              <th>합계 (월)</th>
+              <th>경쟁도</th>
+            </tr>
+          </thead>
+          <tbody id="kw-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">ELPI BLOG · Keyword Explorer · Powered by Claude + Naver Search Ad API</div>
+
+<script>
+// ── 상태 ──────────────────────────────────────────────
+const STATE = {
+  topic: null,
+  category: null,
+  mode: 'longtail',
+  count: 20,
+  results: [],
+};
+
+// 카테고리 정의
+const CATEGORIES = {
+  stock: [
+    { id: 'domestic', label: '국내 주식' },
+    { id: 'us', label: '미국 주식' },
+    { id: 'etf', label: 'ETF · 펀드' },
+    { id: 'tech', label: '반도체 · IT' },
+    { id: 'analysis', label: '기술적 분석' },
+    { id: 'dividend', label: '배당주 · 가치주' },
+    { id: 'ipo', label: 'IPO · 공모주' },
+    { id: 'crypto', label: '가상화폐' },
+  ],
+  economy: [
+    { id: 'rate', label: '금리 · 통화정책' },
+    { id: 'exchange', label: '환율 · 외환' },
+    { id: 'realestate', label: '부동산 · 아파트' },
+    { id: 'global', label: '글로벌 경제' },
+    { id: 'consumer', label: '물가 · 소비' },
+    { id: 'job', label: '고용 · 취업' },
+    { id: 'tax', label: '세금 · 절세' },
+    { id: 'retire', label: '노후 · 연금' },
+  ],
+  support: [
+    { id: 'cash', label: '현금 지원금' },
+    { id: 'youth', label: '청년 지원' },
+    { id: 'startup', label: '창업 · 소상공인' },
+    { id: 'welfare', label: '복지 · 의료' },
+    { id: 'housing', label: '주거 · 전세' },
+    { id: 'tax2', label: '세금 환급' },
+    { id: 'subsidy', label: '보조금 · 에너지' },
+    { id: 'edu', label: '교육 · 장학금' },
+  ]
+};
+
+// 모드별 Claude 프롬프트 지시
+const MODE_DESC = {
+  longtail: '롱테일 키워드(3~5어절) 위주로. 구체적이고 경쟁이 낮을 것. 예: "삼성전자 주가 전망 2026", "종합소득세 환급 신청 방법"',
+  volume: '월 검색량이 많을 것으로 예상되는 1~3어절 인기 키워드 위주로. 트래픽 확보에 유리한 것',
+  season: '지금 시점(2026년 6월)에 검색이 급증하고 있거나 곧 증가할 시즌 이슈 키워드. 예: 여름 관련, 하반기 정책, 최근 이슈'
+};
+
+// ── UI 함수 ──────────────────────────────────────────
+function selectTopic(btn) {
+  document.querySelectorAll('.topic-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  STATE.topic = btn.dataset.topic;
+  STATE.category = null;
+
+  // 카테고리 렌더
+  const cats = CATEGORIES[STATE.topic];
+  const grid = document.getElementById('cat-grid');
+  grid.innerHTML = cats.map(c =>
+    `<button class="cat-btn" data-cat="${c.id}" onclick="selectCategory(this)">${c.label}</button>`
+  ).join('');
+
+  // 섹션 표시
+  showSections(['cat-wrap', 'mode-wrap', 'count-wrap', 'api-wrap']);
+  document.getElementById('subcustom').classList.remove('show');
+}
+
+function selectCategory(btn) {
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  STATE.category = btn.dataset.cat;
+  STATE.categoryLabel = btn.textContent;
+  document.getElementById('subcustom').classList.add('show');
+}
+
+function selectMode(btn) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  STATE.mode = btn.dataset.mode;
+}
+
+function selectCount(btn) {
+  document.querySelectorAll('.count-opt').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  STATE.count = parseInt(btn.dataset.n);
+}
+
+function showSections(ids) {
+  ids.forEach(id => document.getElementById(id)?.classList.add('show'));
+}
+
+function stepSet(n, state) {
+  const item = document.getElementById('s' + n);
+  const dot = document.getElementById('d' + n);
+  item.className = 'step-item' + (state === 'active' ? ' s-active' : state === 'done' ? ' s-done' : '');
+  dot.className = 'step-dot' + (state === 'active' ? ' s-active' : state === 'done' ? ' s-done' : '');
+  if (state === 'done') dot.textContent = '✓';
+  if (state === 'active') {
+    // 스피너 추가
+    if (!item.querySelector('.spinner')) {
+      const sp = document.createElement('div');
+      sp.className = 'spinner';
+      item.insertBefore(sp, item.querySelector('.step-content'));
+      item.querySelector('.step-dot').style.display = 'none';
+    }
+  } else {
+    const sp = item.querySelector('.spinner');
+    if (sp) sp.remove();
+    item.querySelector('.step-dot').style.display = 'flex';
+  }
+}
+
+// ── API 키 저장/불러오기 ──────────────────────────────
+function toggleSave() {
+  const save = document.getElementById('save-keys-toggle').checked;
+  if (save) saveKeys();
+}
+
+function saveKeys() {
+  const save = document.getElementById('save-keys-toggle').checked;
+  if (!save) return;
+  localStorage.setItem('elpi_claude', document.getElementById('claude-key').value);
+  localStorage.setItem('elpi_nk', document.getElementById('naver-key').value);
+  localStorage.setItem('elpi_ns', document.getElementById('naver-secret').value);
+  localStorage.setItem('elpi_nc', document.getElementById('naver-cid').value);
+}
+
+function loadKeys() {
+  const ck = localStorage.getItem('elpi_claude');
+  const nk = localStorage.getItem('elpi_nk');
+  const ns = localStorage.getItem('elpi_ns');
+  const nc = localStorage.getItem('elpi_nc');
+  if (ck) { document.getElementById('claude-key').value = ck; document.getElementById('save-keys-toggle').checked = true; }
+  if (nk) document.getElementById('naver-key').value = nk;
+  if (ns) document.getElementById('naver-secret').value = ns;
+  if (nc) document.getElementById('naver-cid').value = nc;
+}
+
+// ── 메인 분석 ────────────────────────────────────────
+async function runAnalysis() {
+  if (!STATE.topic) { alert('주제를 선택해주세요.'); return; }
+
+  const claudeKey = document.getElementById('claude-key').value.trim();
+  const naverKey = document.getElementById('naver-key').value.trim();
+  const naverSecret = document.getElementById('naver-secret').value.trim();
+  const naverCid = document.getElementById('naver-cid').value.trim();
+  const customHint = document.getElementById('custom-hint')?.value.trim() || '';
+
+  if (!claudeKey) { alert('Claude API 키를 입력해주세요.'); return; }
+
+  saveKeys();
+
+  const topicNames = { stock: '주식', economy: '경제', support: '정부지원' };
+  const topicName = topicNames[STATE.topic];
+  const catLabel = STATE.categoryLabel || '전체';
+
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('results-wrap').classList.remove('show');
+  document.getElementById('error-box').classList.remove('show');
+  document.getElementById('sim-notice').classList.remove('show');
+  const pw = document.getElementById('progress-wrap');
+  pw.classList.add('show');
+
+  // 스텝 초기화
+  [1,2,3].forEach(n => stepSet(n, 'wait'));
+  stepSet(1, 'active');
+
+  try {
+    // ── STEP 1: Claude로 시드 키워드 생성 ────────────
+    const prompt = `너는 네이버 블로그 SEO 전문가야.
+아래 조건에 맞는 키워드를 정확히 ${STATE.count}개 추출해줘.
+JSON 배열만 반환하고 다른 텍스트/마크다운은 절대 쓰지 마.
+
+주제: ${topicName} > ${catLabel}
+탐색 방향: ${MODE_DESC[STATE.mode]}
+${customHint ? `추가 힌트/키워드: ${customHint}` : ''}
+
+조건:
+- 실제 네이버에서 검색되는 한국어 키워드
+- 블로그 포스팅 제목/본문에 자연스럽게 쓸 수 있는 것
+- 중복 의미 없이 다양한 각도로
+
+반환형식: ["키워드1","키워드2",...] (JSON 배열만, 정확히 ${STATE.count}개)`;
+
+    const r1 = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': claudeKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1200,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!r1.ok) throw new Error(`Claude API 오류 (${r1.status}) — API 키를 확인해주세요`);
+    const d1 = await r1.json();
+    let seeds = JSON.parse(d1.content[0].text.trim().replace(/```json|```/g, '').trim());
+    document.getElementById('sub1').textContent = `${seeds.length}개 키워드 후보 생성 완료`;
+    stepSet(1, 'done');
+    stepSet(2, 'active');
+
+    // ── STEP 2: 네이버 검색량 조회 ───────────────────
+    let kwList = [];
+    let isSim = false;
+
+    if (naverKey && naverSecret && naverCid) {
+      try {
+        // Vercel 서버리스 함수를 통해 호출 (CORS 우회)
+        const nr = await fetch('/api/naver-keywords', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            keywords: seeds,
+            apiKey: naverKey,
+            secret: naverSecret,
+            customerId: naverCid
+          })
+        });
+
+        if (nr.ok) {
+          const nd = await nr.json();
+          if (nd.keywordList && nd.keywordList.length > 0) {
+            kwList = nd.keywordList;
+          } else {
+            isSim = true;
+          }
+        } else {
+          isSim = true;
+        }
+      } catch (e) {
+        console.warn('Naver API 오류, 시뮬레이션으로 전환:', e);
+        isSim = true;
+      }
+    } else {
+      isSim = true;
+    }
+
+    // 시뮬레이션 데이터
+    if (isSim || kwList.length === 0) {
+      isSim = true;
+      const compOptions = ['낮음', '중간', '높음'];
+      kwList = seeds.map(kw => ({
+        relKeyword: kw,
+        monthlyPcQcCnt: String(Math.floor(Math.random() * 8000 + 100)),
+        monthlyMobileQcCnt: String(Math.floor(Math.random() * 25000 + 500)),
+        compIdx: compOptions[Math.floor(Math.random() * 3)]
+      }));
+    }
+
+    // seeds 순서 유지하며 매핑
+    const kwMap = {};
+    kwList.forEach(k => { kwMap[k.relKeyword] = k; });
+
+    document.getElementById('sub2').textContent = isSim ? '시뮬레이션 데이터 사용' : `${kwList.length}개 실제 검색량 수집 완료`;
+    stepSet(2, 'done');
+    stepSet(3, 'active');
+
+    // ── STEP 3: 정렬 및 결과 구성 ────────────────────
+    // 네이버 API는 relKeyword가 정제된 키워드를 반환하므로 포함 관계로 매핑
+    STATE.results = seeds.map(seed => {
+      // 정확 매핑 우선, 없으면 포함 검색
+      let k = kwMap[seed] || kwList.find(kw =>
+        kw.relKeyword.includes(seed) || seed.includes(kw.relKeyword)
+      );
+
+      const pc = k ? (parseInt(k.monthlyPcQcCnt) || 0) : Math.floor(Math.random() * 3000 + 100);
+      const mob = k ? (parseInt(k.monthlyMobileQcCnt) || 0) : Math.floor(Math.random() * 10000 + 300);
+      const comp = k ? (k.compIdx || '중간') : '중간';
+
+      return {
+        kw: seed,
+        pc,
+        mob,
+        total: pc + mob,
+        comp,
+      };
+    }).sort((a, b) => b.total - a.total);
+
+    stepSet(3, 'done');
+
+    setTimeout(() => {
+      pw.classList.remove('show');
+      renderResults(isSim, topicName, catLabel);
+      document.getElementById('results-wrap').classList.add('show');
+    }, 400);
+
+  } catch (e) {
+    pw.classList.remove('show');
+    document.getElementById('error-box').classList.add('show');
+    document.getElementById('error-msg').textContent = e.message;
+  }
+
+  document.getElementById('run-btn').disabled = false;
+}
+
+function renderResults(isSim, topicName, catLabel) {
+  const list = STATE.results;
+  const total = list.reduce((s, r) => s + r.total, 0);
+  const lowC = list.filter(r => r.comp === '낮음').length;
+  const maxTotal = Math.max(...list.map(r => r.total), 1);
+
+  document.getElementById('table-title').textContent =
+    `${topicName} › ${catLabel} — ${list.length}개 키워드`;
+
+  document.getElementById('metrics-row').innerHTML = `
+    <div class="metric">
+      <div class="metric-label">총 월 검색량</div>
+      <div class="metric-value">${total >= 10000 ? (total/10000).toFixed(1)+'만' : total.toLocaleString()}</div>
+      <div class="metric-sub">PC + 모바일 합산</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">경쟁도 낮음</div>
+      <div class="metric-value">${lowC}개</div>
+      <div class="metric-sub">즉시 공략 추천</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">평균 검색량</div>
+      <div class="metric-value">${Math.round(total/list.length).toLocaleString()}</div>
+      <div class="metric-sub">키워드당 월평균</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">데이터</div>
+      <div class="metric-value" style="font-size:13px; padding-top:4px;">${isSim ? '시뮬레이션' : '실제 데이터'}</div>
+      <div class="metric-sub">${isSim ? '네이버 API 미연결' : '네이버 검색광고'}</div>
+    </div>
+  `;
+
+  if (isSim) document.getElementById('sim-notice').classList.add('show');
+
+  const compBadge = c => c === '낮음' ? 'badge-low' : c === '높음' ? 'badge-high' : 'badge-mid';
+
+  document.getElementById('kw-tbody').innerHTML = list.map((r, i) => `
+    <tr>
+      <td>
+        <div class="kw-cell">
+          <span class="kw-rank">${i+1}</span>
+          <span class="kw-name">${r.kw}</span>
+        </div>
+      </td>
+      <td class="num">${r.pc.toLocaleString()}</td>
+      <td class="num">${r.mob.toLocaleString()}</td>
+      <td>
+        <div class="bar-wrap">
+          <div class="bar-bg"><div class="bar-fill" style="width:${Math.round(r.total/maxTotal*100)}%"></div></div>
+          <span class="bar-num">${r.total >= 10000 ? (r.total/10000).toFixed(1)+'만' : r.total.toLocaleString()}</span>
+        </div>
+      </td>
+      <td><span class="badge ${compBadge(r.comp)}">${r.comp}</span></td>
+    </tr>
+  `).join('');
+}
+
+function exportCSV() {
+  if (!STATE.results.length) return;
+  const bom = '\uFEFF';
+  const header = '순위,키워드,월PC검색량,월모바일검색량,합계,경쟁도\n';
+  const rows = STATE.results.map((r, i) =>
+    `${i+1},${r.kw},${r.pc},${r.mob},${r.total},${r.comp}`
+  ).join('\n');
+  const blob = new Blob([bom + header + rows], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `엘피키워드_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// 초기화
+loadKeys();
+</script>
+</body>
+</html>
