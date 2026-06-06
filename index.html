@@ -684,21 +684,28 @@
         <div class="step-dot" id="d1">1</div>
         <div class="step-content">
           <div class="step-name">시드 키워드 생성</div>
-          <div class="step-sub" id="sub1">Claude AI가 주제별 키워드 후보 생성 중</div>
+          <div class="step-sub" id="sub1">Claude AI가 주제별 탐색 키워드 생성 중</div>
         </div>
       </div>
       <div class="step-item" id="s2">
         <div class="step-dot" id="d2">2</div>
         <div class="step-content">
-          <div class="step-name">네이버 검색량 조회</div>
-          <div class="step-sub" id="sub2">실제 월간 PC + 모바일 검색량 수집</div>
+          <div class="step-name">네이버 연관 키워드 수집</div>
+          <div class="step-sub" id="sub2">시드 키워드별 연관 키워드 전체 수집 중</div>
         </div>
       </div>
       <div class="step-item" id="s3">
         <div class="step-dot" id="d3">3</div>
         <div class="step-content">
-          <div class="step-name">결과 정렬 및 분석</div>
-          <div class="step-sub" id="sub3">경쟁도 + 검색량 기준 우선순위 산정</div>
+          <div class="step-name">기본 필터링</div>
+          <div class="step-sub" id="sub3">검색량 100 이하 제거 및 중복 정리</div>
+        </div>
+      </div>
+      <div class="step-item" id="s4">
+        <div class="step-dot" id="d4">4</div>
+        <div class="step-content">
+          <div class="step-name">Claude AI 최종 선별</div>
+          <div class="step-sub" id="sub4">모드 · 시즌 · 실용성 기준으로 추천 키워드 선별 중</div>
         </div>
       </div>
     </div>
@@ -731,6 +738,7 @@
               <th class="num">모바일 검색</th>
               <th>합계 (월)</th>
               <th>경쟁도</th>
+              <th>선별 이유</th>
             </tr>
           </thead>
           <tbody id="kw-tbody"></tbody>
@@ -901,6 +909,7 @@ async function runAnalysis() {
   const topicNames = { stock: '주식', economy: '경제', support: '정부지원' };
   const topicName = topicNames[STATE.topic];
   const catLabel = STATE.categoryLabel || '전체';
+  const today = new Date().toLocaleDateString('ko-KR', { year:'numeric', month:'long' });
 
   document.getElementById('run-btn').disabled = true;
   document.getElementById('results-wrap').classList.remove('show');
@@ -909,26 +918,27 @@ async function runAnalysis() {
   const pw = document.getElementById('progress-wrap');
   pw.classList.add('show');
 
-  // 스텝 초기화
-  [1,2,3].forEach(n => stepSet(n, 'wait'));
+  [1,2,3,4].forEach(n => stepSet(n, 'wait'));
   stepSet(1, 'active');
 
   try {
-    // ── STEP 1: Claude로 시드 키워드 생성 ────────────
-    const prompt = `너는 네이버 블로그 SEO 전문가야.
-아래 조건에 맞는 키워드를 정확히 ${STATE.count}개 추출해줘.
+    // ── STEP 1: Claude → 시드 키워드 생성 (띄어쓰기 없는 단어) ──
+    const seedPrompt = `너는 네이버 블로그 SEO 전문가야.
+아래 조건에 맞는 네이버 키워드 도구용 시드 키워드를 10개 생성해줘.
 JSON 배열만 반환하고 다른 텍스트/마크다운은 절대 쓰지 마.
 
 주제: ${topicName} > ${catLabel}
 탐색 방향: ${MODE_DESC[STATE.mode]}
-${customHint ? `추가 힌트/키워드: ${customHint}` : ''}
+현재 시점: ${today}
+${customHint ? `참고 힌트: ${customHint}` : ''}
 
 조건:
-- 실제 네이버에서 검색되는 한국어 키워드
-- 블로그 포스팅 제목/본문에 자연스럽게 쓸 수 있는 것
+- 반드시 띄어쓰기 없는 단어 또는 붙여쓴 복합어 (예: ETF추천, 금리인하, 청년지원금)
+- 이 키워드로 네이버 키워드 도구를 조회하면 다양한 연관 키워드가 나올 수 있는 핵심 시드
 - 중복 의미 없이 다양한 각도로
+- 정확히 10개
 
-반환형식: ["키워드1","키워드2",...] (JSON 배열만, 정확히 ${STATE.count}개)`;
+반환형식: ["키워드1","키워드2",...] (JSON 배열만)`;
 
     const r1 = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -940,25 +950,24 @@ ${customHint ? `추가 힌트/키워드: ${customHint}` : ''}
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1200,
-        messages: [{ role: 'user', content: prompt }]
+        max_tokens: 800,
+        messages: [{ role: 'user', content: seedPrompt }]
       })
     });
 
     if (!r1.ok) throw new Error(`Claude API 오류 (${r1.status}) — API 키를 확인해주세요`);
     const d1 = await r1.json();
-    let seeds = JSON.parse(d1.content[0].text.trim().replace(/```json|```/g, '').trim());
-    document.getElementById('sub1').textContent = `${seeds.length}개 키워드 후보 생성 완료`;
+    const seeds = JSON.parse(d1.content[0].text.trim().replace(/```json|```/g, '').trim());
+    document.getElementById('sub1').textContent = `시드 키워드 ${seeds.length}개 생성 완료`;
     stepSet(1, 'done');
     stepSet(2, 'active');
 
-    // ── STEP 2: 네이버 검색량 조회 ───────────────────
-    let kwList = [];
+    // ── STEP 2: 네이버 → 연관 키워드 전체 수집 ───────
+    let rawList = [];
     let isSim = false;
 
     if (naverKey && naverSecret && naverCid) {
       try {
-        // Vercel 서버리스 함수를 통해 호출 (CORS 우회)
         const nr = await fetch('/api/naver-keywords', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -969,75 +978,107 @@ ${customHint ? `추가 힌트/키워드: ${customHint}` : ''}
             customerId: naverCid
           })
         });
-
         if (nr.ok) {
           const nd = await nr.json();
-          if (nd.keywordList && nd.keywordList.length > 0) {
-            kwList = nd.keywordList;
-          } else {
-            isSim = true;
-          }
-        } else {
-          isSim = true;
+          rawList = nd.keywordList || [];
         }
-      } catch (e) {
-        console.warn('Naver API 오류, 시뮬레이션으로 전환:', e);
-        isSim = true;
+      } catch(e) {
+        console.warn('Naver API 오류:', e);
       }
-    } else {
-      isSim = true;
     }
 
-    // 시뮬레이션 데이터
-    if (isSim || kwList.length === 0) {
+    if (rawList.length === 0) {
       isSim = true;
+      // 시뮬레이션: 시드별로 가상 연관 키워드 생성
       const compOptions = ['낮음', '중간', '높음'];
-      kwList = seeds.map(kw => ({
-        relKeyword: kw,
-        monthlyPcQcCnt: String(Math.floor(Math.random() * 8000 + 100)),
-        monthlyMobileQcCnt: String(Math.floor(Math.random() * 25000 + 500)),
-        compIdx: compOptions[Math.floor(Math.random() * 3)]
-      }));
+      rawList = seeds.flatMap(seed => {
+        const variants = [seed, seed+'추천', seed+'방법', seed+'종류', seed+'비교', seed+'장단점'];
+        return variants.map(v => ({
+          relKeyword: v,
+          monthlyPcQcCnt: String(Math.floor(Math.random() * 8000 + 50)),
+          monthlyMobileQcCnt: String(Math.floor(Math.random() * 25000 + 200)),
+          compIdx: compOptions[Math.floor(Math.random() * 3)]
+        }));
+      });
     }
 
-    // seeds 순서 유지하며 매핑
-    const kwMap = {};
-    kwList.forEach(k => { kwMap[k.relKeyword] = k; });
-
-    document.getElementById('sub2').textContent = isSim ? '시뮬레이션 데이터 사용' : `${kwList.length}개 실제 검색량 수집 완료`;
+    document.getElementById('sub2').textContent = isSim
+      ? `시뮬레이션: ${rawList.length}개 키워드`
+      : `연관 키워드 ${rawList.length}개 수집 완료`;
     stepSet(2, 'done');
     stepSet(3, 'active');
 
-    // ── STEP 3: 정렬 및 결과 구성 ────────────────────
-    // 네이버 API는 relKeyword가 정제된 키워드를 반환하므로 포함 관계로 매핑
-    STATE.results = seeds.map(seed => {
-      // 정확 매핑 우선, 없으면 포함 검색
-      let k = kwMap[seed] || kwList.find(kw =>
-        kw.relKeyword.includes(seed) || seed.includes(kw.relKeyword)
-      );
+    // ── STEP 3: 기본 필터링 ───────────────────────────
+    const filtered = rawList.filter(k => {
+      const pc = parseInt(k.monthlyPcQcCnt) || 0;
+      const mob = parseInt(k.monthlyMobileQcCnt) || 0;
+      return (pc + mob) >= 100; // 검색량 100 이하 제거
+    });
 
-      const pc = k ? (parseInt(k.monthlyPcQcCnt) || 0) : Math.floor(Math.random() * 3000 + 100);
-      const mob = k ? (parseInt(k.monthlyMobileQcCnt) || 0) : Math.floor(Math.random() * 10000 + 300);
-      const comp = k ? (k.compIdx || '중간') : '중간';
-
-      return {
-        kw: seed,
-        pc,
-        mob,
-        total: pc + mob,
-        comp,
-      };
-    }).sort((a, b) => b.total - a.total);
-
+    document.getElementById('sub3').textContent =
+      `${rawList.length}개 중 ${filtered.length}개 통과 (검색량 100↑)`;
     stepSet(3, 'done');
+    stepSet(4, 'active');
 
+    // ── STEP 4: Claude → 최종 선별 ───────────────────
+    const kwData = filtered.map(k => ({
+      kw: k.relKeyword,
+      pc: parseInt(k.monthlyPcQcCnt) || 0,
+      mob: parseInt(k.monthlyMobileQcCnt) || 0,
+      total: (parseInt(k.monthlyPcQcCnt) || 0) + (parseInt(k.monthlyMobileQcCnt) || 0),
+      comp: k.compIdx || '중간'
+    }));
+
+    const modeLabels = { longtail: '롱테일 공략', volume: '검색량 우선', season: '시즌 이슈' };
+
+    const pickPrompt = `너는 네이버 블로그 SEO 전문가야. 수집된 키워드 데이터에서 "${topicName} > ${catLabel}" 블로그 포스팅에 실제로 쓸만한 키워드를 선별해줘.
+JSON만 반환하고 다른 텍스트는 절대 쓰지 마.
+
+탐색 모드: ${modeLabels[STATE.mode]}
+현재 시점: ${today}
+목표 추천 수: ${STATE.count}개 이하
+
+키워드 데이터 (relKeyword, PC월검색, 모바일월검색, 합계, 경쟁도):
+${kwData.slice(0, 80).map(k => `${k.kw}|${k.pc}|${k.mob}|${k.total}|${k.comp}`).join('\n')}
+
+선별 기준:
+- 탐색 모드에 맞는 키워드 우선
+- 경쟁도 "높음"이면 검색량이 매우 커야만 포함
+- 현재 시점(${today}) 시즌성 고려
+- 블로그 포스팅 제목으로 쓸 수 있는 것
+- 너무 짧은 단어(1~2글자)는 제외
+- 중복 의미 키워드는 하나만
+
+반환형식:
+[{"kw":"키워드","pc":숫자,"mob":숫자,"total":숫자,"comp":"낮음/중간/높음","reason":"선별이유 15자이내"}]`;
+
+    const r4 = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': claudeKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: pickPrompt }]
+      })
+    });
+
+    if (!r4.ok) throw new Error(`Claude 선별 오류 (${r4.status})`);
+    const d4 = await r4.json();
+    STATE.results = JSON.parse(d4.content[0].text.trim().replace(/```json|```/g, '').trim());
+
+    stepSet(4, 'done');
     setTimeout(() => {
       pw.classList.remove('show');
       renderResults(isSim, topicName, catLabel);
       document.getElementById('results-wrap').classList.add('show');
     }, 400);
 
-  } catch (e) {
+  } catch(e) {
     pw.classList.remove('show');
     document.getElementById('error-box').classList.add('show');
     document.getElementById('error-msg').textContent = e.message;
@@ -1090,15 +1131,16 @@ function renderResults(isSim, topicName, catLabel) {
           <span class="kw-name">${r.kw}</span>
         </div>
       </td>
-      <td class="num">${r.pc.toLocaleString()}</td>
-      <td class="num">${r.mob.toLocaleString()}</td>
+      <td class="num">${(r.pc||0).toLocaleString()}</td>
+      <td class="num">${(r.mob||0).toLocaleString()}</td>
       <td>
         <div class="bar-wrap">
-          <div class="bar-bg"><div class="bar-fill" style="width:${Math.round(r.total/maxTotal*100)}%"></div></div>
-          <span class="bar-num">${r.total >= 10000 ? (r.total/10000).toFixed(1)+'만' : r.total.toLocaleString()}</span>
+          <div class="bar-bg"><div class="bar-fill" style="width:${Math.round((r.total||0)/maxTotal*100)}%"></div></div>
+          <span class="bar-num">${(r.total||0) >= 10000 ? ((r.total||0)/10000).toFixed(1)+'만' : (r.total||0).toLocaleString()}</span>
         </div>
       </td>
       <td><span class="badge ${compBadge(r.comp)}">${r.comp}</span></td>
+      <td style="font-size:12px; color:var(--text2); max-width:160px;">${r.reason || ''}</td>
     </tr>
   `).join('');
 }
