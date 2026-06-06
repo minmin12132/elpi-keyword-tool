@@ -40,12 +40,13 @@ module.exports = async function handler(req, res) {
     const timestamp = Date.now().toString();
     const signature = hmacSignature(timestamp, method, apiPath, secret);
 
-    // 쉼표 인코딩 없이 그대로 전달
-    const queryString = 'hintKeywords=' + chunk.join(',') + '&showDetail=1';
+    // 각 키워드의 공백만 +로 변환, 키워드 간 구분은 쉼표
+    const encodedKeywords = chunk.map(kw => kw.replace(/ /g, '+')).join(',');
+    const queryString = `hintKeywords=${encodedKeywords}&showDetail=1`;
 
     try {
       const url = `https://api.searchad.naver.com${apiPath}?${queryString}`;
-      console.log(`[Naver API] calling: ${url.slice(0, 100)}`);
+      console.log(`[Naver API] calling: ${url.slice(0, 120)}`);
 
       const response = await fetch(url, {
         headers: {
