@@ -33,20 +33,19 @@ module.exports = async function handler(req, res) {
   const allResults = [];
   const errors = [];
 
-  for (let i = 0; i < keywords.length; i += 5) {
-    if (i > 0) await sleep(300);
+  // 네이버 API: 키워드 1개씩, 띄어쓰기 제거 후 호출
+  for (let i = 0; i < keywords.length; i++) {
+    if (i > 0) await sleep(200);
 
-    const chunk = keywords.slice(i, i + 5);
+    // 띄어쓰기 제거 (네이버 API가 공백 포함 키워드를 거부함)
+    const kw = keywords[i].replace(/\s+/g, '');
     const timestamp = Date.now().toString();
     const signature = hmacSignature(timestamp, method, apiPath, secret);
-
-    // 각 키워드의 공백만 +로 변환, 키워드 간 구분은 쉼표
-    const encodedKeywords = chunk.map(kw => kw.replace(/ /g, '+')).join(',');
-    const queryString = `hintKeywords=${encodedKeywords}&showDetail=1`;
+    const queryString = `hintKeywords=${encodeURIComponent(kw)}&showDetail=1`;
 
     try {
       const url = `https://api.searchad.naver.com${apiPath}?${queryString}`;
-      console.log(`[Naver API] calling: ${url.slice(0, 120)}`);
+      console.log(`[Naver API] [${i+1}/${keywords.length}] keyword: ${kw}`);
 
       const response = await fetch(url, {
         headers: {
@@ -58,20 +57,41 @@ module.exports = async function handler(req, res) {
       });
 
       const text = await response.text();
-      console.log(`[Naver API] chunk ${i} status:${response.status} body:${text.slice(0, 300)}`);
+      console.log(`[Naver API] status:${response.status} body:${text.slice(0, 200)}`);
 
       if (response.ok) {
         const data = JSON.parse(text);
-        if (data.keywordList) allResults.push(...data.keywordList);
+        // 원래 키워드와 매핑되도록 relKeyword를 원본 키워드로 덮어씀
+        if (data.keywordList && data.keywordList.length > 0) {
+          // 검색량이 가장 높은 결과를 원본 키워드로 매핑
+          const best = data.keywordList[0];
+          best.relKeyword = keywords[i]; // 원본 키워드(띄어쓰기 포함)로 복원
+          allResults.push(best);
+        } else {
+          // 결과 없어도 키워드는 유지 (검색량 0으로)
+          allResults.push({
+            relKeyword: keywords[i],
+            monthlyPcQcCnt: '0',
+            monthlyMobileQcCnt: '0',
+            compIdx: '중간'
+          });
+        }
       } else {
-        errors.push({ status: response.status, body: text.slice(0, 300) });
+        errors.push({ keyword: kw, status: response.status, body: text.slice(0, 200) });
+        // 실패한 키워드도 0으로 유지
+        allResults.push({
+          relKeyword: keywords[i],
+          monthlyPcQcCnt: '0',
+          monthlyMobileQcCnt: '0',
+          compIdx: '중간'
+        });
       }
     } catch (e) {
-      console.error('[Naver API] fetch error:', e.message);
-      errors.push({ error: e.message });
+      console.error('[Naver API] error:', e.message);
+      errors.push({ keyword: kw, error: e.message });
     }
   }
 
-  console.log('[Debug] total results:', allResults.length);
+  console.log('[Debug] total results:', allResults.length, 'errors:', errors.length);
   return res.status(200).json({ keywordList: allResults, errors });
 };
